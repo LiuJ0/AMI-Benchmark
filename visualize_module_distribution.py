@@ -137,7 +137,11 @@ def plot_stacked_bar(csv_file, dataset=None, save_path=None):
     
     # Show the plot
     plt.show()
-def visualize_module_sizes(modules: Dict[str, List[List[str]]], save_path: str = None):
+def visualize_module_sizes(modules: Dict[str, List[List[str]]], 
+                          save_path: str = None,
+                          median_font_size: int = 12,
+                          count_font_size: int = 12,
+                          plot_gap: float = 0.4):
     # Prepare data for plotting
     data = []
     module_counts = {}
@@ -162,18 +166,36 @@ def visualize_module_sizes(modules: Dict[str, List[List[str]]], save_path: str =
     plt.xlabel('Algorithm')
     plt.ylabel('Module Size')
     
-    # Add count annotations above each box
+    # Add median values next to the median lines
     unique_algorithms = df['Algorithm'].unique()
+    for idx, algorithm in enumerate(unique_algorithms):
+        algorithm_data = df[df['Algorithm'] == algorithm]['Module Size']
+        median_value = algorithm_data.median()
+        
+        # Calculate median position directly
+        x_pos = idx + plot_gap  # Adjustable gap between plot and text
+        y_pos = median_value    # The y-position is the median value
+        
+        # Add text annotation with just the median value
+        plt.text(x_pos, y_pos, f' {median_value:.1f}', 
+                verticalalignment='center',
+                fontweight='bold',
+                fontsize=median_font_size)
+    
+    # Add count annotations above each box
     for idx, algorithm in enumerate(unique_algorithms):
         count = module_counts[algorithm]
         plt.text(idx, plt.ylim()[1], f'n={count}', 
                 horizontalalignment='center',
                 verticalalignment='bottom',
-                fontweight='bold')
+                fontweight='bold',
+                fontsize=count_font_size)
     
     # Adjust y-axis limits to make room for count annotations
     current_ymin, current_ymax = plt.ylim()
     plt.ylim(current_ymin, current_ymax * 1.1)  # Add 10% padding at the top
+    current_xmin, current_xmax = plt.xlim()
+    plt.xlim(current_xmin, current_xmax + 0.1)  # Add padding on x-axis
     
     plt.tight_layout()
     
@@ -181,6 +203,9 @@ def visualize_module_sizes(modules: Dict[str, List[List[str]]], save_path: str =
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
     
     plt.show()
+
+
+
 def create_module_distribution(modules: Dict[str, List[List[str]]], save_path: str = None, log_scale: bool = False):
     # Count module sizes for each algorithm
     size_counts = defaultdict(lambda: defaultdict(int))
@@ -241,10 +266,12 @@ if __name__ == "__main__":
     algos = ["PAPER", "DOMINO", "HotNet2", "FDRnet"]
     res_dir = "/lab01/Projects/Jason_Projects/aneuploidy/ppi/test/test_07-21-2024_EMP-benchmark/true_solutions"
     modules_report_dir = "/lab01/Projects/Jason_Projects/aneuploidy/ppi/test/test_07-21-2024_EMP-benchmark/report/module_cache_files"
+    
     illumina_modules = get_all_modules(res_dir, algos, "gene_scores_illumina_v3")
     tvc_modules = get_all_modules(res_dir, algos, "gene_scores_tvc")
     tnfa_modules = get_all_modules(res_dir, algos, "tnfa")
     fly_transcriptome_modules = get_all_modules(res_dir, algos, "fly_transcriptome")
     all_modules = combine_dictionaries(illumina_modules, tvc_modules, tnfa_modules, fly_transcriptome_modules)
 
-    visualize_module_sizes(all_modules, save_path="module_sizes.png")
+    create_module_distribution(all_modules, save_path="../figures/module_distribution_all.png")
+    visualize_module_sizes(all_modules, save_path="../figures/module_sizes_all.svg")

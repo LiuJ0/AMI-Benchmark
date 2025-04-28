@@ -70,13 +70,13 @@ def find_module_matches(G: nx.Graph, modules1: List[List[int]], modules2: List[L
     
     return matches
 
-def emd_subgraph_similarity(G, subgraph1, subgraph2):
+def emd_subgraph_similarity(G: nx.Graph, subgraph1, subgraph2):
 
-    # check that the distance between the two subgraphs is not infinite
+    # check if modules are connected
     if nx.has_path(G, subgraph1[0], subgraph2[0]) == False:
         return np.inf
 
-    # Step 1: Represent subgraphs as distributions
+    # represent subgraphs as distributions
     nodes1 = set(subgraph1)
     nodes2 = set(subgraph2)
     all_nodes = list(nodes1.union(nodes2))
@@ -84,13 +84,13 @@ def emd_subgraph_similarity(G, subgraph1, subgraph2):
     distribution1 = create_distribution(all_nodes, nodes1)
     distribution2 = create_distribution(all_nodes, nodes2)
     
-    # Step 2: Calculate distance matrix only for relevant nodes
+    # calculate distance matrix only for relevant nodes
     distance_matrix = calculate_distance_matrix(G, all_nodes)
     
-    # Step 3: Solve the transportation problem
+    # solve the transportation problem
     flow = solve_transportation_problem(distribution1, distribution2, distance_matrix)
     
-    # Step 4: Calculate EMD
+    # calculate EMD
     emd = calculate_emd(flow, distance_matrix)
     
     return emd
@@ -184,9 +184,3 @@ def solve_transportation_problem_network_simplex(dist1, dist2, distance_matrix):
 
 def calculate_emd(flow, distance_matrix):
     return np.sum(flow * distance_matrix)
-
-# Usage
-# G = nx.Graph()  # Your graph
-# subgraph1 = [...]  # List of nodes in subgraph1
-# subgraph2 = [...]  # List of nodes in subgraph2
-# similarity = emd_subgraph_similarity(G, subgraph1, subgraph2)

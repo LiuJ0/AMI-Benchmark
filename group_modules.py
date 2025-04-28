@@ -1,4 +1,5 @@
 import numpy as np
+from utils import *
 from collections import defaultdict
 from sklearn.cluster import SpectralClustering
 from sklearn.preprocessing import normalize
@@ -130,84 +131,9 @@ def estimate_clusters_eigenvalues(matrix, max_clusters, save_path=False):
         plt.savefig(save_path)
     
     # Find the largest eigengap
-    suggested_clusters = np.argmax(eigengaps[:max_clusters]) + 1
+    suggested_clusters = np.argmax(eigengaps[1:max_clusters]) + 1
     
     return suggested_clusters
-
-def estimate_clusters_quality(matrix, max_clusters=10, save_path=None):
-    """ 
-    Estimate the number of clusters by computing clustering quality.
-    
-    :param matrix: The normalized co-occurrence matrix
-    :param max_clusters: Maximum number of clusters to consider
-    :return: List of silhouette scores for each number of clusters
-    """
-    silhouette_scores = []
-    
-    for n_clusters in range(2, max_clusters + 1):
-        clustering = SpectralClustering(n_clusters=n_clusters, 
-                                        assign_labels='kmeans',
-                                        random_state=0,
-                                        affinity='precomputed').fit(matrix)
-        score = silhouette_score(matrix, clustering.labels_)
-        silhouette_scores.append(score)
-    
-    # Plot silhouette scores
-    plt.figure(figsize=(10, 5))
-    plt.plot(range(2, max_clusters + 1), silhouette_scores, 'bo-')
-    plt.xlabel('Number of Clusters')
-    plt.ylabel('Silhouette Score')
-    plt.title('Silhouette Scores for Different Numbers of Clusters')
-    plt.show()
-
-    if save_path:
-        plt.savefig(save_path)
-    
-    return silhouette_scores
-
-def interpret_clustering_results(module_sets, gene_list, cluster_labels):
-    """
-    Interpret the clustering results in the context of the original modules.
-    
-    :param module_sets: A list of lists, where each inner list represents the modules
-                        identified by one algorithm. Each module is a set of gene IDs.
-    :param gene_list: The list of all genes
-    :param cluster_labels: The cluster labels for each gene
-    :return: A dictionary containing various interpretation metrics
-    """
-    n_clusters = max(cluster_labels) + 1
-    gene_to_cluster = dict(zip(gene_list, cluster_labels))
-    
-    # Initialize interpretation metrics
-    interpretation = {
-        'cluster_compositions': defaultdict(list),
-        'module_distributions': [],
-        'cluster_purities': [],
-        'module_homogeneities': []
-    }
-    
-    # Analyze cluster compositions and module distributions
-    for module_index, module in enumerate(module_sets):
-        module_distribution = [0] * n_clusters
-        for gene in module:
-            if gene in gene_to_cluster:
-                cluster = gene_to_cluster[gene]
-                module_distribution[cluster] += 1
-                interpretation['cluster_compositions'][cluster].append((None, module_index, gene))
-        
-        # Calculate module homogeneity
-        total_genes = sum(module_distribution)
-        homogeneity = max(module_distribution) / total_genes if total_genes > 0 else 0
-        interpretation['module_homogeneities'].append(homogeneity)
-        interpretation['module_distributions'].append(module_distribution)
-    
-    # Calculate cluster purities
-    for cluster in range(n_clusters):
-        algorithms = [item[0] for item in interpretation['cluster_compositions'][cluster]]
-        purity = max(algorithms.count(i) for i in set(algorithms)) / len(algorithms) if algorithms else 0
-        interpretation['cluster_purities'].append(purity)
-    
-    return interpretation
 
 def print_clustering_interpretation(interpretation, gene_list, cluster_labels):
     """
@@ -248,40 +174,6 @@ def print_clustering_interpretation(interpretation, gene_list, cluster_labels):
     print(f"  Average Cluster Purity: {np.mean(interpretation['cluster_purities']):.2f}")
     print(f"  Average Module Homogeneity: {np.mean(interpretation['module_homogeneities']):.2f}")
 
-def perform_hierarchical_clustering(matrix, n_clusters=2, linkage_method='ward'):
-    """
-    Perform hierarchical clustering on the input matrix.
-    
-    :param matrix: The input matrix
-    :param n_clusters: Number of clusters to form
-    :param linkage_method: The linkage method to use
-    :return: Cluster labels for each gene
-    """
-    clustering = AgglomerativeClustering(n_clusters=n_clusters, linkage=linkage_method)
-    return clustering.fit_predict(matrix)
-
-
-def plot_dendrogram(matrix, gene_list):
-    """
-    Plot the dendrogram for hierarchical clustering.
-    
-    :param matrix: The input matrix
-    :param gene_list: List of gene names
-    """
-    # Compute the distance matrix
-    dist_matrix = pdist(matrix)
-    
-    # Perform hierarchical clustering
-    linkage_matrix = sch.linkage(dist_matrix, method='ward')
-    
-    # Plot the dendrogram
-    plt.figure(figsize=(10, 7))
-    sch.dendrogram(linkage_matrix, labels=gene_list, leaf_rotation=90)
-    plt.title('Hierarchical Clustering Dendrogram')
-    plt.xlabel('Gene')
-    plt.ylabel('Distance')
-    plt.tight_layout()
-    plt.show()
 
 def remove_redundancies(modules: List[List[str]]) -> List[List[str]]: 
     module_sets = [set(module) for module in modules]
@@ -356,8 +248,7 @@ def print_cluster_module_matching(results, gene_list, cluster_labels):
     n_pure_modules = 0
     
     for cluster in range(n_clusters):
-        print(f"\nCluster {cluster}:")
-        print("gene,algos")
+        print(f"\nCluster {cluster}: ", end="")
         
         # Get genes in this cluster
         cluster_genes = [gene for gene, label in gene_to_cluster.items() if label == cluster]
@@ -370,9 +261,11 @@ def print_cluster_module_matching(results, gene_list, cluster_labels):
             algo_modules = results['gene_to_modules'].get(gene, set())
             if algo_modules:
                 # Sort the algorithm-module combinations for consistent output
-                algo_modules_str = '"' + ','.join(sorted(algo_modules)) + '"'
-                used_modules.add(algo_modules_str)
+                for algo_module_str in sorted(algo_modules):
+                    used_modules.add(algo_module_str)
                 # print(f"{gene},{algo_modules_str}")
+        for algo_module_str in sorted(used_modules):
+            print(algo_module_str, end=", ")
         if len(used_modules) == 1:
             n_pure_modules += 1
     
@@ -532,7 +425,7 @@ def filter_non_overlapping_modules(algorithm_modules):
     
     return filtered_modules, removed_modules
 
-def create_algorithm_heatmaps(algorithm_modules, joint_gene_list, cluster_labels, joint_cooccurrence_matrix, save_path=None, sep_lines=True):
+def create_algorithm_heatmaps(algorithm_modules, joint_gene_list, cluster_labels, joint_cooccurrence_matrix, y_axis=None, save_path=None, sep_lines=True):
     """
     Create heatmaps for each algorithm's co-occurrence matrix, aligned with the joint clustering.
     
@@ -551,7 +444,6 @@ def create_algorithm_heatmaps(algorithm_modules, joint_gene_list, cluster_labels
     
     if n_algorithms == 1:
         axes = [axes]
-    
     for ax, (algo_name, modules) in zip(axes[:-1], algorithm_modules.items()):
         # Generate co-occurrence matrix for this algorithm
         algo_cooccurrence, algo_genes = generate_cooccurrence_matrix(modules)
@@ -574,8 +466,9 @@ def create_algorithm_heatmaps(algorithm_modules, joint_gene_list, cluster_labels
         sorted_matrix = full_matrix[sorted_indices][:, sorted_indices]
         
         # Create heatmap
-        sns.heatmap(sorted_matrix, ax=ax, cmap="YlGnBu", xticklabels=False, yticklabels=False)
-        ax.set_title(f"{algo_name} Co-occurrence Matrix")
+        cbar = sns.heatmap(sorted_matrix, ax=ax, cmap="YlGnBu", xticklabels=False, yticklabels=False)
+        cbar.collections[0].colorbar.ax.tick_params(labelsize=16)
+        ax.set_title(f"{algo_name}", fontsize=18)
         if sep_lines:
             cluster_sizes = [sum(cluster_labels == i) for i in range(max(cluster_labels) + 1)]
             cumulative_sizes = np.cumsum(cluster_sizes)
@@ -586,20 +479,24 @@ def create_algorithm_heatmaps(algorithm_modules, joint_gene_list, cluster_labels
     # Add joint matrix
     sorted_joint_matrix = joint_cooccurrence_matrix[sorted_indices][:, sorted_indices]
     ax = axes[-1]
-    sns.heatmap(sorted_joint_matrix, ax=ax, cmap="YlGnBu", xticklabels=False, yticklabels=False)
-    ax.set_title("Joint Co-occurrence Matrix")
+    cbar = sns.heatmap(sorted_joint_matrix, ax=ax, cmap="YlGnBu", xticklabels=False, yticklabels=False)
+    cbar.collections[0].colorbar.ax.tick_params(labelsize=18)
+    ax.set_title("Joint", fontsize=16)
     if sep_lines:
         cluster_sizes = [sum(cluster_labels == i) for i in range(max(cluster_labels) + 1)]
         cumulative_sizes = np.cumsum(cluster_sizes)
         for size in cumulative_sizes[:-1]:
             ax.axhline(y=size, color='red', linestyle='--')
             ax.axvline(x=size, color='red', linestyle='--')
-    
+    # add y-axis label
+    axes[0].set_ylabel(y_axis, fontsize=16)
     plt.tight_layout()
+
     plt.show()
 
     if save_path: 
         plt.savefig(save_path, dpi=500)
+
 def recursive_spectral_clustering(matrix, max_cluster_size, max_clusters, max_iterations=5):
     """
     Perform recursive spectral clustering on the co-occurrence matrix.
@@ -764,3 +661,94 @@ def recursive_spectral_clustering_silhouette(matrix, min_silhouette_score, max_c
         final_labels[cluster] = i
     
     return final_labels, original_labels
+
+def perform_clustering(unlabeled, labeled, save_paths=['cooc_eigenvalues.png', 'nl_eigenvalues.png', 'heatmap.png'], sep_lines=False, filter_genes=True, recursive=False):
+    if filter_genes: 
+        module_count = 0
+        for algo, modules in labeled.items(): 
+            for module in modules: 
+                module_count += 1
+        filtered_modules, removed = filter_non_overlapping_modules(labeled)
+        # print("Removed module", removed)
+        removed_genes = []
+        for algo, module in removed: 
+            removed_genes += module
+        filtered_unlabeled = [module for modules in filtered_modules.values() for module in modules]
+        cooccurence_matrix, gene_list = generate_cooccurrence_matrix(filtered_unlabeled)
+
+        print(f"Number of modules: {module_count - len(removed)} | Number of genes: {len(gene_list)} | Number of removed modules: {len(removed)} | Number of removed genes: {len(removed_genes)}")
+    # Illumina: 657 genes, 608 removed, 49 remaining
+    # Tvc: 762 genes, 703 removed, 59 remaining
+    # TnfA: 100 genes, 66 removed, 34 remaining
+    # Fly transcriptome: 739 genes, 519 removed, 220 remaining
+    else: 
+        cooccurence_matrix, gene_list = generate_cooccurrence_matrix(unlabeled)
+        filtered_unlabeled = unlabeled
+        print(f"Number of genes: {len(gene_list)}")
+    matrix = cooccurrence_to_matrix(cooccurence_matrix, gene_list)
+    normalized_matrix = matrix 
+    plot_eigenvalues(normalized_matrix, save_path=save_paths[0])
+    # Illumina: 7 clusters, Tvc: 5, TnfA: 6, Fly transcriptome: 10
+    suggested_clusters_eigen = estimate_clusters_eigenvalues(normalized_matrix, save_path=save_paths[1], max_clusters=len(filtered_unlabeled)) # number of initial modules
+    print(f"\nSuggested number of clusters (eigengap heuristic): {suggested_clusters_eigen}")
+    if recursive:
+        spectral_cluster_labels, initial = recursive_spectral_clustering(normalized_matrix, max_cluster_size=40, max_clusters=len(filtered_unlabeled) // 2, max_iterations=5)
+    else:
+        spectral_cluster_labels = perform_spectral_clustering(normalized_matrix, suggested_clusters_eigen)
+        initial = spectral_cluster_labels
+    create_cooccurrence_heatmaps(matrix, gene_list, spectral_cluster_labels, save_path=save_paths[2], sep_lines=sep_lines)
+    return gene_list, matrix, suggested_clusters_eigen, spectral_cluster_labels, initial
+
+
+if __name__ == "__main__":
+    algos = ["PAPER", "DOMINO", "FDRnet"]
+    res_dir = "/lab01/Projects/Jason_Projects/aneuploidy/ppi/test/test_07-21-2024_EMP-benchmark/true_solutions"
+
+    illumina_modules = get_all_modules(res_dir, algos, "gene_scores_illumina_v3")
+    illumina_modules_nonredundant = remove_redundancies_from_dict(illumina_modules)
+    tvc_modules = get_all_modules(res_dir, algos, "gene_scores_tvc")
+    tvc_modules_nonredundant = remove_redundancies_from_dict(tvc_modules)
+    tnfa_modules = get_all_modules(res_dir, algos, "tnfa")
+    tnfa_modules_nonredundant = remove_redundancies_from_dict(tnfa_modules)
+    fly_transcriptome_modules = get_all_modules(res_dir, algos, "fly_transcriptome")
+    fly_transcriptome_modules_nonredundant = remove_redundancies_from_dict(fly_transcriptome_modules)
+
+    illumina_modules_unlabeled = [module for modules in illumina_modules.values() for module in modules]
+    tnfa_modules_unlabeled = [module for modules in tnfa_modules.values() for module in modules]
+    tvc_modules_unlabeled = [module for modules in tvc_modules.values() for module in modules]
+    fly_transcriptome_modules_unlabeled = [module for modules in fly_transcriptome_modules.values() for module in modules]
+
+    illumina_modules_filtered = remove_redundancies(illumina_modules_unlabeled)
+    tnfa_modules_filtered = remove_redundancies(tnfa_modules_unlabeled)
+    tvc_modules_filtered = remove_redundancies(tvc_modules_unlabeled)
+    fly_transcriptome_modules_filtered = remove_redundancies(fly_transcriptome_modules_unlabeled)
+
+    three_dbs = network_to_graph("/lab01/Projects/Jason_Projects/aneuploidy/ppi/data/processed/network_full_ids_v2.tsv", source="node1", target="node2")
+    dip = network_to_graph("/lab01/Projects/Jason_Projects/aneuploidy/ppi/data/original/dip_original.sif", source="node1", target="node2")
+    string_db = network_to_graph("/lab01/Projects/Jason_Projects/aneuploidy/ppi/data/processed/STRING_v12_FBgn_geq900.sif", source="node1", target="node2")
+
+
+    illumina_ordering, illumina_cooccurence_matrix, suggested_clusters_illumina, spectral_cluster_labels_illumina, nonrecursive_labels_illumina = perform_clustering(
+        illumina_modules_filtered, illumina_modules, sep_lines=False, save_paths=['../figures/illumina_cooc_eigenvalues.png', '../figures/illumina_nl_eigenvalues.png', '../figures/illumina_heatmap.png'], filter_genes=True, recursive=False)
+    create_algorithm_heatmaps(illumina_modules, illumina_ordering, nonrecursive_labels_illumina, illumina_cooccurence_matrix, save_path='../figures/illumina_algorithm_heatmap.png', sep_lines=False, y_axis='Aneuploidy1')
+    res = match_clusters_to_modules(spectral_cluster_labels_illumina, illumina_ordering, illumina_modules)
+    print_cluster_module_matching(res, illumina_ordering, spectral_cluster_labels_illumina)
+
+
+    tvc_ordering, tvc_cooccurence_matrix, suggested_clusters_tvc, spectral_cluster_labels_tvc, nonrecursive_labels_tvc = perform_clustering(
+        tvc_modules_filtered, tvc_modules, sep_lines=False, save_paths=['../figures/tvc_cooc_eigenvalues.png', '../figures/tvc_nl_eigenvalues.png', '../figures/tvc_heatmap.png'], filter_genes=True, recursive=False)
+    create_algorithm_heatmaps(tvc_modules, tvc_ordering, nonrecursive_labels_tvc, tvc_cooccurence_matrix, save_path='../figures/tvc_algorithm_heatmap.png', sep_lines=False, y_axis='Aneuploidy2')
+    res = match_clusters_to_modules(spectral_cluster_labels_tvc, tvc_ordering, tvc_modules)
+    print_cluster_module_matching(res, tvc_ordering, spectral_cluster_labels_tvc)
+
+    tnfa_ordering, tnfa_cooccurence_matrix, suggested_clusters_tnfa, spectral_cluster_labels_tnfa, nonrecursive_labels_tnfa = perform_clustering(
+        tnfa_modules_filtered, tnfa_modules, sep_lines=False, save_paths=['../figures/tnfa_cooc_eigenvalues.png', '../figures/tnfa_nl_eigenvalues.png', '../figures/tnfa_heatmap.png'], filter_genes=True, recursive=False)
+    create_algorithm_heatmaps(tnfa_modules, tnfa_ordering, nonrecursive_labels_tnfa, tnfa_cooccurence_matrix, save_path='../figures/tnfa_algorithm_heatmap.png', sep_lines=False, y_axis='TNFa')
+    res = match_clusters_to_modules(spectral_cluster_labels_tnfa, tnfa_ordering, tnfa_modules)
+    print_cluster_module_matching(res, tnfa_ordering, spectral_cluster_labels_tnfa)
+
+    fly_transcriptome_ordering, fly_transcriptome_cooccurence_matrix, suggested_clusters_fly_transcriptome, spectral_cluster_labels_fly_transcriptome, nonrecursive_labels_fly_transcriptome = perform_clustering(
+        fly_transcriptome_modules_filtered, fly_transcriptome_modules, sep_lines=False, save_paths=['../figures/fly_transcriptome_cooc_eigenvalues.png', '../figures/fly_transcriptome_nl_eigenvalues.png', '../figures/fly_transcriptome_heatmap.png'], filter_genes=True, recursive=False)
+    create_algorithm_heatmaps(fly_transcriptome_modules, fly_transcriptome_ordering, nonrecursive_labels_fly_transcriptome, fly_transcriptome_cooccurence_matrix, save_path='../figures/fly_transcriptome_algorithm_heatmap.png', sep_lines=False, y_axis='Fly Transcriptome')
+    res = match_clusters_to_modules(spectral_cluster_labels_fly_transcriptome, fly_transcriptome_ordering, fly_transcriptome_modules)
+    print_cluster_module_matching(res, fly_transcriptome_ordering, spectral_cluster_labels_fly_transcriptome)

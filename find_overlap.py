@@ -1,3 +1,4 @@
+from utils import *
 import pandas as pd
 import os
 from collections import defaultdict, Counter
@@ -12,24 +13,6 @@ import functools
 
 def sort_by_count(input_dict):
     return dict(sorted(input_dict.items(), key=lambda x: x[1]['count'], reverse=True))
-def read_modules(algo_dir, algo_name, dataset_name):
-    modules_path = os.path.join(algo_dir, dataset_name + "_" + algo_name, "report")
-    # Read any files with that start with "ALGO_NAME"_module_genes_*
-    modules = []
-    for file in os.listdir(modules_path):
-        if file.startswith(algo_name + "_module_genes_"):
-            modules.append([x.strip() for x in open(os.path.join(modules_path, file)).readlines()])
-    return modules
-
-def network_to_graph(network_file, source="node1", target="node2"): 
-    network = pd.read_csv(network_file, sep="\t")
-    return nx.from_pandas_edgelist(network, source=source, target=target, edge_attr=True, create_using=nx.Graph)
-
-def get_all_modules(res_dir, algos, dataset): 
-    modules = {}
-    for algo in algos: 
-        modules[algo] = read_modules(res_dir, algo, dataset)
-    return modules
 
 def find_overlapping_genes(modules):
     gene_info = defaultdict(lambda: {"algorithms": defaultdict(set)})
@@ -49,10 +32,6 @@ def find_overlapping_genes(modules):
         }
 
     return overlapping_genes
-
-def network_to_graph(network_file, source="node1", target="node2"): 
-    network = pd.read_csv(network_file, sep="\t")
-    return nx.from_pandas_edgelist(network, source=source, target=target, edge_attr=True, create_using=nx.Graph)
 
 if __name__ == "__main__":
     name2ENSG = pd.read_csv("/lab01/Projects/Jason_Projects/aneuploidy/ppi/data/original/Name2ENSG_GRCh38.csv")

@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from matplotlib.patches import Wedge
 from collections import defaultdict
+from utils import *
 
 def read_cluster_data(csv_file):
     """
@@ -86,7 +87,7 @@ def visualize_cluster(G, gene_to_algos, output_file=None):
     pos = nx.spring_layout(G, k=1, iterations=50)
     
     # Draw edges
-    nx.draw_networkx_edges(G, pos, edge_color='gray', alpha=0.5)
+    nx.draw_networkx_edges(G, pos, alpha=0.6, width=2)
     
     # Create pie chart nodes for each gene
     for gene in G.nodes():
@@ -95,9 +96,7 @@ def visualize_cluster(G, gene_to_algos, output_file=None):
         for patch in patches:
             ax.add_patch(patch)
     
-    # Add gene labels
-    labels = {gene: gene for gene in G.nodes()}
-    nx.draw_networkx_labels(G, pos, labels, font_size=8)
+    # Add gene labelsx  
     
     # Create legend
     legend_elements = [
@@ -105,20 +104,20 @@ def visualize_cluster(G, gene_to_algos, output_file=None):
         plt.Rectangle((0, 0), 1, 1, facecolor='#99FF99', label='FDRnet'),
         plt.Rectangle((0, 0), 1, 1, facecolor='#9999FF', label='PAPER')
     ]
-    ax.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(1, 1))
+    ax.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(1, 1), fontsize=18)
     
     # Set axis properties
     plt.axis('equal')
     plt.axis('off')
     
     # Add title
-    plt.title('Cluster Visualization\nNodes colored by algorithm membership', pad=20)
+    # plt.title('Cluster Visualization\nNodes colored by algorithm membership', pad=20)
     
     # Add statistics
-    stats_text = f"Number of nodes: {G.number_of_nodes()}\n"
-    stats_text += f"Number of edges: {G.number_of_edges()}"
-    plt.text(0.02, 0.98, stats_text, transform=plt.gca().transAxes, 
-             verticalalignment='top', bbox=dict(facecolor='white', alpha=0.8))
+    #stats_text = f"Number of nodes: {G.number_of_nodes()}\n"
+    #stats_text += f"Number of edges: {G.number_of_edges()}"
+    #plt.text(0.02, 0.98, stats_text, transform=plt.gca().transAxes, 
+             #verticalalignment='top', bbox=dict(facecolor='white', alpha=0.8))
     
     # Save or show the plot
     if output_file:
@@ -141,18 +140,7 @@ def main(csv_file, ppi_graph):
     # Create visualization
     visualize_cluster(filtered_graph, gene_to_algos, output_file="cluster0.png")
 
-# Example usage:
 if __name__ == "__main__":
-    # Example: Create a sample PPI network
-    def network_to_graph(network_file, source="node1", target="node2"): 
-        network = pd.read_csv(network_file, sep="\t")
-        return nx.from_pandas_edgelist(network, source=source, target=target, edge_attr=True, create_using=nx.Graph)
-
     dip = network_to_graph("/lab01/Projects/Jason_Projects/aneuploidy/ppi/data/original/dip_original.sif", source="node1", target="node2")
     dip.remove_edges_from(nx.selfloop_edges(dip))
-    # Add your nodes and edges here
-    
-    # Example CSV file path
-    csv_file = "cluster0.txt"
-    
-    main(csv_file, dip)
+    main("cluster0.txt", dip)

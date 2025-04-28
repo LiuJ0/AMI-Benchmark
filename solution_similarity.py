@@ -1,4 +1,5 @@
 #!/bin/python3
+from utils import *
 import numpy as np
 import networkx as nx
 from scipy.optimize import linear_sum_assignment
@@ -27,25 +28,6 @@ def dict_to_symmetric_dataframe(data):
     np.fill_diagonal(df.values, 0)
     
     return df
-
-def read_modules(algo_dir, algo_name, dataset_name):
-    modules_path = os.path.join(algo_dir, dataset_name + "_" + algo_name, "report")
-    # Read any files with that start with "ALGO_NAME"_module_genes_*
-    modules = []
-    for file in os.listdir(modules_path):
-        if file.startswith(algo_name + "_module_genes_"):
-            modules.append([x.strip() for x in open(os.path.join(modules_path, file)).readlines()])
-    return modules
-
-def network_to_graph(network_file, source="node1", target="node2"): 
-    network = pd.read_csv(network_file, sep="\t")
-    return nx.from_pandas_edgelist(network, source=source, target=target, edge_attr=True, create_using=nx.Graph)
-
-def get_all_modules(res_dir, algos, dataset): 
-    modules = {}
-    for algo in algos: 
-        modules[algo] = read_modules(res_dir, algo, dataset)
-    return modules
 
 def compute_similarity_matrix(G: nx.Graph, dataset_modules: Dict[str, List[List[str]]], algos: List[str]) -> pd.DataFrame:
     """
@@ -265,12 +247,12 @@ def create_combined_heatmap(matrix1_path, matrix2_path, output_path='combined_he
                          cbar_kws={'label': 'Similarity Score'})
     
     # Customize the plot with specific font sizes
-    plt.title(f'{dataset_name} Similarity Matrices\nUpper: {matrix1_name}, Lower: {matrix2_name}',
+    plt.title(f'{dataset_name}', #\nUpper: {matrix1_name}, Lower: {matrix2_name}',
              fontsize=title_size, pad=20)
     
     # Set font sizes for axis labels
     plt.xticks(rotation=45, ha='right', fontsize=axis_label_size)
-    plt.yticks(fontsize=axis_label_size)
+    plt.yticks(rotation=45, fontsize=axis_label_size)
     
     cbar = heatmap.collections[0].colorbar
     cbar.ax.set_ylabel('Similarity Score', fontsize=colorbar_size)
@@ -307,33 +289,12 @@ if __name__ == '__main__':
     for algo in algos: total_tvc += tvc_modules[algo]
     for algo in algos: total_tnfa += tnfa_modules[algo]
     for algo in algos: total_fly += fly_transcriptome_modules[algo]
-    
-    #illumina_matrix_nonmatching = compare_all_algorithms(three_dbs, illumina_modules, compute_similarity_non_matching, total_illumina, illumina_distance_matrix)
-    #dict_to_symmetric_dataframe(illumina_matrix_nonmatching).to_csv("../similarity_scores/illumina_matrix_nonmatching.csv")
-    #illumina_matrix_concordance = compare_all_algorithms(three_dbs, illumina_modules, compute_similarity_concordance, total_illumina)
-    #reorder_matrix(dict_to_symmetric_dataframe(illumina_matrix_concordance)).to_csv("../similarity_scores/illumina_matrix_concordance.csv")
-
-    #tvc_matrix_nonmatching = compare_all_algorithms(three_dbs, tvc_modules, compute_similarity_non_matching, total_tvc, tvc_distance_matrix)
-    #tvc_matrix_concordance = compare_all_algorithms(three_dbs, tvc_modules, compute_similarity_concordance, total_tvc)
-    #dict_to_symmetric_dataframe(tvc_matrix_nonmatching).to_csv("../similarity_scores/tvc_matrix_nonmatching.csv")
-    #reorder_matrix(dict_to_symmetric_dataframe(tvc_matrix_concordance)).to_csv("../similarity_scores/tvc_matrix_concordance.csv")
-
-    #tnfa_matrix_nonmatching = compare_all_algorithms(dip, tnfa_modules, compute_similarity_non_matching, total_tnfa, tnfa_distance_matrix)
-    #tnfa_matrix_concordance = compare_all_algorithms(dip, tnfa_modules, compute_similarity_concordance, total_tnfa)
-    #dict_to_symmetric_dataframe(tnfa_matrix_nonmatching).to_csv("../similarity_scores/tnfa_matrix_nonmatching.csv")
-    #reorder_matrix(dict_to_symmetric_dataframe(tnfa_matrix_concordance)).to_csv("../similarity_scores/tnfa_matrix_concordance.csv")
-
-    #fly_matrix_nonmatching = compare_all_algorithms(string_db, fly_transcriptome_modules, compute_similarity_non_matching, total_fly, fly_distance_matrix)
-    #fly_matrix_concordance = compare_all_algorithms(string_db, fly_transcriptome_modules, compute_similarity_concordance, total_fly)
-    #dict_to_symmetric_dataframe(fly_matrix_nonmatching).to_csv("../similarity_scores/fly_matrix_nonmatching.csv")
-    #reorder_matrix(dict_to_symmetric_dataframe(fly_matrix_concordance)).to_csv("../similarity_scores/fly_matrix_concordance.csv")
-
-    #create_combined_heatmap("../similarity_scores/illumina_similarity.csv", "../similarity_scores/illumina_matrix_nonmatching_reordered.csv", output_path="../similarity_scores/illumina_combined.png", matrix1_name="matching", matrix2_name="sum of EMDs", dataset_name="Illumina")
-    #create_combined_heatmap("../similarity_scores/tvc_similarity.csv", "../similarity_scores/tvc_matrix_nonmatching_reordered.csv", output_path="../similarity_scores/tvc_combined.png", matrix1_name="matching", matrix2_name="sum of EMDs", dataset_name="TVC")
-    #create_combined_heatmap("../similarity_scores/tvc_similarity.csv", "../similarity_scores/tvc_matrix_nonmatching_reordered.csv", output_path="../similarity_scores/tvc_combined.svg", matrix1_name="matching", matrix2_name="sum of EMDs", dataset_name="TVC", axis_label_size=18)
-    #create_combined_heatmap("../similarity_scores/tnfa_similarity.csv", "../similarity_scores/tnfa_matrix_nonmatching_reordered.csv", output_path="../similarity_scores/tnfa_combined.png", matrix1_name="matching", matrix2_name="sum of EMDs", dataset_name="TNFA")
-    #create_combined_heatmap("../similarity_scores/fly_transcriptome_similarity.csv", "../similarity_scores/fly_matrix_nonmatching_reordered.csv", output_path="../similarity_scores/fly_combined.png", matrix1_name="matching", matrix2_name="sum of EMDs", dataset_name="Fly Transcriptome")
     paths1 = ["../similarity_scores/illumina_similarity.csv", "../similarity_scores/tvc_similarity.csv", "../similarity_scores/tnfa_similarity.csv", "../similarity_scores/fly_transcriptome_similarity.csv"]
-    paths2 = ["../similarity_scores/illumina_matrix_nonmatching.csv", "../similarity_scores/tvc_matrix_nonmatching.csv", "../similarity_scores/tnfa_matrix_nonmatching.csv", "../similarity_scores/fly_matrix_nonmatching.csv"]
-    print(sum([mean_similarity(path) for path in paths1])/len(paths1))
-    print(sum([mean_similarity(path) for path in paths2])/len(paths2))
+    paths2 = ["../similarity_scores/illumina_matrix_nonmatching_reordered.csv", "../similarity_scores/tvc_matrix_nonmatching_reordered.csv", 
+              "../similarity_scores/tnfa_matrix_nonmatching_reordered.csv", "../similarity_scores/fly_matrix_nonmatching_reordered.csv"]
+    for i in range(len(paths1)):
+        algos = ["illumina", "tvc", "tnfa", "fly"]
+        create_combined_heatmap(paths1[i], paths2[i], output_path=f"../similarity_scores/{algos[i]}_combined.png", 
+                                matrix1_name="matching", matrix2_name="sum of EMDs", dataset_name=["Aneuploidy1", "Aneuploidy2", "TNFa", "Fly Transcriptome"][i],
+                                annot_size=18, axis_label_size=16, title_size=20, colorbar_size=16)
+        
