@@ -1,7 +1,7 @@
 # Evaluation and Aggregation of Active Module Identification Algorithms
 This repository contains the files used in the study "Evaluation and Aggregation of Active Module Identification Algorithms."
 ## Project Workflow
-![Project Workflow](img/mabc-2024-figure-project-workflow-0.png)
+![Project Workflow](img/mabc-2024-figure-project-workflow-0-white-background.png)
 ## EMP
 ### Algorithms
 We provide the code we used to run EMP for the various algorithms. 
