@@ -54,7 +54,16 @@ def merge_by_conductance_pairwise(G: nx.Graph, modules1: List[List[str]], module
 def conductance(G: nx.Graph, module: List[str]) -> float:
     return nx.conductance(G, G.subgraph(module))
 
-def merge_by_conductance(algorithms: List[str], total_modules: List[List[Set[int]]], G: nx.Graph, verbosity=0) -> List[Set[int]]:
+def merge_by_conductance(algorithms: List[str], total_modules: List[List[Set[str]]], G: nx.Graph, verbosity=0) -> List[Set[str]]:
+    """
+    An implementation of the conductance merging algorithm described in Algorithm 6. 
+    
+    Parameters: 
+    algorithms: List of algorithm names
+    total_modules: List of modules for each algorithm
+    G: The graph to compute conductance on
+    verbosity: Level of verbosity for debugging (0 = none, 3 = all)
+    """
     n = len(algorithms)
     conductance_ratios = {}
     

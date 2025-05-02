@@ -164,20 +164,6 @@ def calculate_distance_matrix(G, total_modules):
 
 
 def reorder_matrix(df, new_order=['PAPER', 'DOMINO', 'HotNet2', 'FDRnet'], output_file=None):
-    """
-    Reorder a matrix stored in a CSV file.
-    
-    Parameters:
-    file_path (str): Path to the input CSV file
-    new_order (list): List of column names in the desired order
-    output_file (str, optional): Path to save the reordered CSV file. If None, doesn't save to file.
-    
-    Returns:
-    pd.DataFrame: Reordered pandas DataFrame
-    """
-    # Read the CSV file
-    
-    # Reorder the rows and columns
     df_reordered = df.reindex(index=new_order, columns=new_order)
     return df_reordered
 

@@ -1,0 +1,25 @@
+import sys
+sys.path.insert(0, '../')
+import os
+from src import constants
+from src.runners.domino_runner import DominoRunner
+from src.runners.paper_runner_v3 import PAPERRunner
+from src.runners.hotnet2_runner import HotNet2Runner
+from src.runners.fdrnet_runner import FDRnetRunner
+
+ALGO_BY_NAMES = {'DOMINO': DominoRunner(), 'PAPER': PAPERRunner(), 'HotNet2': HotNet2Runner(), 'FDRnet': FDRnetRunner()}
+
+
+def add_algo_runner(k,v):
+    ALGO_BY_NAMES[k]=v
+
+def create_ds_folders(dataset_name):
+    os.makedirs(os.path.join(os.path.join(constants.DATASETS_DIR, dataset_name, "data")))
+    os.makedirs(os.path.join(os.path.join(constants.DATASETS_DIR, dataset_name, "cache")))
+    os.makedirs(os.path.join(os.path.join(constants.DATASETS_DIR, dataset_name, "output")))
+
+
+def run_algo(dataset_name, algo, network_file_name, go_folder, output_folder, **kwargs):
+    ALGO_BY_NAMES[algo].main(dataset_name, network_file_name, go_folder, output_folder, **kwargs)
+
+

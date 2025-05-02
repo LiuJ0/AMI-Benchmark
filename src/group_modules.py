@@ -122,9 +122,20 @@ def estimate_clusters_eigenvalues(matrix, max_clusters, save_path=False):
     # Plot eigenvalues
     plt.figure(figsize=(10, 5))
     plt.plot(range(1, len(eigenvalues) + 1), eigenvalues, 'bo-')
-    plt.xlabel('Index')
-    plt.ylabel('Eigenvalue')
-    plt.title('Eigenvalues of Normalized Laplacian')
+    plt.xlabel('Eigenvalue Index', fontsize=14)
+    plt.ylabel('Value', fontsize=14)
+    names_to_titles = {
+        "../figures/illumina_nl_eigenvalues.png": "Aneuploidy1",
+        "../figures/tvc_nl_eigenvalues.png": "Aneuploidy2",
+        "../figures/tnfa_nl_eigenvalues.png": "TNFa",
+        "../figures/fly_transcriptome_nl_eigenvalues.png": "Fly Transcriptome",
+    }
+
+    plt.title(names_to_titles[save_path], fontsize=16)
+    plt.yticks([])
+    plt.xticks(fontsize=12)
+    plt.tight_layout()
+
     plt.show()
 
     if save_path:

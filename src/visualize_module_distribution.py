@@ -5,38 +5,11 @@ import numpy as np
 from typing import Dict, List
 from collections import defaultdict
 import os
+from utils import *
 
 import pandas as pd
 import matplotlib.pyplot as plt
 import networkx as nx
-
-def read_modules(algo_dir, algo_name, dataset_name):
-    modules_path = os.path.join(algo_dir, dataset_name + "_" + algo_name, "report")
-    # Read any files with that start with "ALGO_NAME"_module_genes_*
-    modules = []
-    for file in os.listdir(modules_path):
-        if file.startswith(algo_name + "_module_genes_"):
-            modules.append([x.strip() for x in open(os.path.join(modules_path, file)).readlines()])
-    return modules
-
-def network_to_graph(network_file, source="node1", target="node2"): 
-    network = pd.read_csv(network_file, sep="\t")
-    return nx.from_pandas_edgelist(network, source=source, target=target, edge_attr=True, create_using=nx.Graph)
-
-def get_all_modules(res_dir, algos, dataset): 
-    modules = {}
-    for algo in algos: 
-        modules[algo] = read_modules(res_dir, algo, dataset)
-    return modules
-
-def combine_dictionaries(*dictionaries: Dict[str, List[List[str]]]) -> Dict[str, List[List[str]]]:
-    combined = defaultdict(list)
-
-    for dictionary in dictionaries:
-        for algorithm, list_of_lists in dictionary.items():
-            combined[algorithm].extend(list_of_lists)
-
-    return dict(combined)
 
 def process_full_modules_reports(directory):
     # List to store individual dataframes
@@ -72,7 +45,8 @@ def process_full_modules_reports(directory):
     else:
         print("No matching files found.")
         return None
-def create_scatter_plot(df, x_col, y_col, title, save_path=None):
+
+def create_scatter_plot(df: pd.DataFrame, x_col: str, y_col: str, title: str, save_path=None):
     # Set the style for the plot
     plt.style.use('seaborn-v0_8-colorblind')
     
@@ -137,11 +111,16 @@ def plot_stacked_bar(csv_file, dataset=None, save_path=None):
     
     # Show the plot
     plt.show()
+
 def visualize_module_sizes(modules: Dict[str, List[List[str]]], 
                           save_path: str = None,
                           median_font_size: int = 12,
                           count_font_size: int = 12,
                           plot_gap: float = 0.4):
+    """
+    Visualize the distribution of module sizes for different algorithms using box plots and swarm plots.
+    modules: Dictionary where keys are algorithm names and values are lists of modules (each module is a list of genes).
+    """
     # Prepare data for plotting
     data = []
     module_counts = {}
@@ -207,6 +186,10 @@ def visualize_module_sizes(modules: Dict[str, List[List[str]]],
 
 
 def create_module_distribution(modules: Dict[str, List[List[str]]], save_path: str = None, log_scale: bool = False):
+    """
+    Create a stacked bar plot showing the distribution of module sizes for different algorithms.
+    modules: Dictionary where keys are algorithm names and values are lists of modules (each module is a list of genes).
+    """
     # Count module sizes for each algorithm
     size_counts = defaultdict(lambda: defaultdict(int))
     for algorithm, module_list in modules.items():
@@ -241,7 +224,6 @@ def create_module_distribution(modules: Dict[str, List[List[str]]], save_path: s
         ax.set_yscale('log')
         ax.set_ylabel('Count (Log Scale)')
     
-    # Improve x-axis labeling
     max_ticks = 20  # Maximum number of ticks to show
     step = max(1, len(all_sizes) // max_ticks)
     plt.xticks(all_sizes[::step], all_sizes[::step])

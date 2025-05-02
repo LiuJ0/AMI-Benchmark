@@ -70,8 +70,15 @@ def find_module_matches(G: nx.Graph, modules1: List[List[int]], modules2: List[L
     
     return matches
 
-def emd_subgraph_similarity(G: nx.Graph, subgraph1, subgraph2):
-
+def emd_subgraph_similarity(G: nx.Graph, subgraph1: List[str], subgraph2: List[str]) -> float:
+    """
+    Calculate the Earth Mover's Distance (EMD) between two subgraphs. 
+    
+    Parameters:
+    G (nx.Graph): The complete graph.
+    subgraph1 (List[str]): The first subgraph.
+    subgraph2 (List[str]): The second subgraph.
+    """
     # check if modules are connected
     if nx.has_path(G, subgraph1[0], subgraph2[0]) == False:
         return np.inf
