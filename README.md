@@ -3,6 +3,8 @@ This repository contains the files used in the study "Evaluation and Aggregation
 ## Project Workflow
 ![Project Workflow](img/mabc-2024-figure-project-workflow-0-white-background.png)
 ## EMP
+### Modifications to EMP
+Because we observed that EMP is mis-calibrated, we modified the testing procedure. More details can be found in the manuscript. We provide this code, it is located at `src/emp/calculate_significance.py`. To run it, follow the exact same steps as for the original code. 
 ### Algorithms
 We provide the code we used to run EMP for the various algorithms. 
 First, you will need to set up each algorithm according to its instructions following these links: 
